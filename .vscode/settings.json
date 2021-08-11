@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.tpl": "gotemplate",
+        "vector": "cpp"
+    }
+}
