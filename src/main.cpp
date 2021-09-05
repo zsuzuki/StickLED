@@ -208,7 +208,7 @@ namespace
   }
 
   // バッテリー残量表示
-  void dispBattery()
+  void dispBattery(bool needUpdate = false)
   {
     float bv = axp.getBatteryVoltage();
     constexpr float vLow = 3000.0f;
@@ -222,8 +222,16 @@ namespace
       vCol = TFT_RED;
     bv = std::max(bv - vLow, 0.0f);
     bv = std::min(bv / (vHigh - vLow), 1.0f);
-    auto vHeight = bv * 45;
-    display.fillRoundRect(145, 75 - vHeight, 12, vHeight, 2, vCol);
+    constexpr int Height = 45;
+    auto vHeight = (int)(bv * Height);
+    //
+    static int oldH = 0;
+    if (needUpdate || vHeight != oldH)
+    {
+      display.fillRoundRect(145, 75 - Height, 12, Height, 2, TFT_BLACK);
+      display.fillRoundRect(145, 75 - vHeight, 12, vHeight, 2, vCol);
+      oldH = vHeight;
+    }
   }
 
   // 時刻合わせ
@@ -269,6 +277,25 @@ namespace
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     Serial.println("time setting done.");
+  }
+
+  // 時刻表示
+  void dispTime(bool needUpdate = false)
+  {
+    static TimeType oldT{};
+    rtc.getTime(&nowTime);
+    if (needUpdate == false)
+    {
+      if (oldT.hours == nowTime.hours && oldT.minutes == nowTime.minutes && oldT.seconds == nowTime.seconds)
+      {
+        return;
+      }
+    }
+    char buff[32];
+    snprintf(buff, sizeof(buff), "%02d:%02d.%02d", nowTime.hours, nowTime.minutes, nowTime.seconds);
+    display.setTextColor(TFT_WHITE, TFT_DARKGRAY);
+    display.drawString(buff, 5, 0);
+    oldT = nowTime;
   }
 }
 
@@ -358,17 +385,19 @@ void loop()
     modeList[mode].render(info);
     display.setTextColor(TFT_WHITE, TFT_BLACK);
     display.drawString(modeList[mode].caption, 98, 0);
-    needUpdate = false;
   }
-  dispBattery();
+  dispBattery(needUpdate);
+  dispTime(needUpdate);
+  static bool tO = false;
+  if (needUpdate || tO != timerOn)
   {
-    char buff[32];
-    rtc.getTime(&nowTime);
-    snprintf(buff, sizeof(buff), "%02d:%02d.%02d", nowTime.hours, nowTime.minutes, nowTime.seconds);
-    display.setTextColor(TFT_WHITE, TFT_DARKGRAY);
-    display.drawString(buff, 5, 0);
+    if (timerOn)
+      display.fillCircle(5, 30, 4, TFT_RED);
+    else
+      display.fillCircle(5, 30, 4, TFT_BLACK);
+    tO = timerOn;
   }
-
+  needUpdate = false;
   display.endWrite();
 
   FastLED.show();
