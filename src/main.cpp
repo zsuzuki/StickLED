@@ -22,6 +22,7 @@ namespace
   I2C_AXP192 axp(I2C_AXP192_DEFAULT_ADDRESS, Wire1);
   CRGB leds[NB_LED];
 
+  // ボタン判定クラス
   class Btn
   {
     int pin;
@@ -40,12 +41,13 @@ namespace
     bool get() const { return on; }
   };
 
+  // 色情報
   struct ColorInfo
   {
-    const char *caption;
-    CRGB ledColor;
-    int color;
-    int textColor;
+    const char *caption; // 色名
+    CRGB ledColor;       // LED側に光らせる色
+    int color;           // LCD側に表示される色
+    int textColor;       // LCD側に表示される色名の文字色
   };
 
   std::vector<ColorInfo> colorList = {
@@ -68,6 +70,7 @@ namespace
   Btn buttonB(39);
   std::array<uint8_t, 7> lvList = {255, 128, 64, 32, 16, 8, 0};
 
+  // 操作モード
   struct ModeInfo
   {
     using function = void (*)();
@@ -94,6 +97,7 @@ namespace
   };
   int mode;
 
+  // タイマー設定
   int timerIndex;
   bool timerOn;
   constexpr int operator"" _MIN(unsigned long long n) { return n * 60; }
@@ -101,7 +105,7 @@ namespace
   std::array<int, 6> timerList = {0, 5, 30_MIN, 1_HOUR, 1_HOUR + 30_MIN, 2_HOUR};
   TimeType timerTarget;
 
-  //
+  // タイマー選択
   void selectTimer()
   {
     timerIndex = (timerIndex + 1) % timerList.size();
@@ -125,7 +129,7 @@ namespace
     }
   }
 
-  //
+  // タイマー情報表示
   void renderTimer([[maybe_unused]] const ColorInfo &info)
   {
     for (size_t i = 0; i < timerList.size(); i++)
@@ -146,7 +150,7 @@ namespace
     }
   }
 
-  //
+  // タイマーチェック＆電源OFF
   void checkTimer()
   {
     if (timerOn == false)
@@ -173,7 +177,7 @@ namespace
     }
   }
 
-  //
+  // 明るさ変更
   void changeLightLevel()
   {
     lightIndex = (lightIndex + 1) % lvList.size();
@@ -181,7 +185,7 @@ namespace
     // Serial.printf("light level: %hhu\n", lightLevel);
   }
 
-  //
+  // 通常描画(LCD)
   void renderMain(const ColorInfo &info)
   {
     display.fillRoundRect(20, 30, 120, 40, 8, info.color);
@@ -203,8 +207,7 @@ namespace
     }
   }
 
-  //
-  //
+  // バッテリー残量表示
   void dispBattery()
   {
     float bv = axp.getBatteryVoltage();
@@ -223,7 +226,7 @@ namespace
     display.fillRoundRect(145, 75 - vHeight, 12, vHeight, 2, vCol);
   }
 
-  //
+  // 時刻合わせ
   void setupDateTime()
   {
     const char *ssid = "********";
@@ -262,13 +265,14 @@ namespace
       Serial.println("time setting success");
     }
 
-    //disconnect WiFi
+    // disconnect WiFi
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     Serial.println("time setting done.");
   }
 }
 
+// セットアップ
 void setup()
 {
   setCpuFrequencyMhz(160);
@@ -317,6 +321,7 @@ void setup()
   display.endWrite();
 }
 
+// ループ
 void loop()
 {
   static bool needUpdate = true;
